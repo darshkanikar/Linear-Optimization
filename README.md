@@ -1,9 +1,136 @@
 # Linear Optimization
 
+# Simplex Algorithm: LO_1, LO_2 & LO_3
+
+These three notebooks implement the **simplex method in its geometric (vertex-walking) form** for the linear program:
+
+```
+maximize    cᵀx
+subject to  Ax ≤ b
+```
+
+At each vertex, the algorithm takes the `n` tight constraints `A_B`, computes the edge directions `V = -A_B⁻¹`, and moves along a direction that improves the objective until it hits a new constraint. The three notebooks differ in **how much information is given in the input**:
+
+| Notebook | Input given | What the code must figure out |
+|----------|-------------|-------------------------------|
+| LO_1 | Initial feasible point, `c`, `A`, `b` | Move the point to a vertex, then run simplex |
+| LO_2 | Same CSV as LO_1, but the point is ignored | Find a feasible start (Phase I), then run simplex |
+| LO_3 | Only `c`, `A`, `b` (general case) | Find a feasible start (Phase I), then run simplex |
 
 ---
 
-## LO_4: Hungarian Algorithm (Assignment Problem)
+## LO_1: Simplex from a Given Feasible Point
+
+**Use case:** An initial feasible point `z` is supplied, but it may be in the interior of the feasible region rather than at a vertex.
+
+### Input format (`testcase_1.csv`)
+CSV with no header. The last column is a separator/RHS column.
+
+| Row | Meaning |
+|-----|---------|
+| 1 | Initial feasible point `z` |
+| 2 | Cost vector `c` |
+| 3 onwards | Constraint rows: coefficients of `A`, followed by the entry of `b` in the last column |
+
+### How it works
+1. **`findvertex(A, b, z)`** moves `z` to a vertex:
+   - Finds the constraints that are already tight at `z`.
+   - While fewer than `n` independent constraints are tight, it picks the nearest non-tight constraint, moves toward it, and records the newly tight constraint.
+2. **Simplex iterations:**
+   - Build `A0` from the tight rows and compute `V = -A0⁻¹`.
+   - For each direction `v` with `c·v > 0`, run a ratio test to find the step length and the constraint that becomes tight.
+   - Move to the best improving vertex and swap the leaving row in `A0` for the entering constraint.
+   - Stop when no improving direction exists.
+3. The notebook prints the sequence of vertices visited, the optimal vertex, and the optimal cost.
+
+### Sample output
+- `z = (0, 0)`, `c = (5, 2)`
+- `findvertex` moves to the vertex **(1, 1)** with tight rows `[0, 1]`
+- No improving direction exists, so it is already optimal
+- **Optimal vertex = (1, 1), optimal cost = 7**
+
+---
+
+## LO_2: Simplex with Phase I (Initial Point Not Used)
+
+**Use case:** The CSV still contains the initial point row, but the code passes `x0=None`, so the algorithm must find its own feasible start.
+
+### Input format (`testcase_4.csv`)
+Same as LO_1 (row 1 is `z`, which is read but not used).
+
+### Structure
+| Function | Description |
+|----------|-------------|
+| `simplexp1(A, b)` | **Phase I:** finds a feasible starting point `x0` |
+| `simplexp2(A, b, c, x0)` | **Phase II:** runs the vertex-walking simplex and returns `(x, objective)` |
+| `simplex(A, b, c, x0=None)` | Wrapper: runs Phase I if `x0` is missing, then Phase II |
+
+### How it works
+1. **Phase I (`simplexp1`):**
+   - Flips any constraint with `b[i] < 0`.
+   - Takes the least-squares solution of `Ax = b` and clips it to be non-negative.
+   - If it is still infeasible, applies up to 50 corrective steps.
+   - Reports failure if no feasible point is found.
+2. **Phase II (`simplexp2`):**
+   - Identifies the tight rows at `x0` and fills up to `n` rows using the smallest slacks.
+   - Uses the pseudo-inverse if the basis matrix is singular (degeneracy).
+   - Tracks visited bases to stop cycling.
+   - Returns `inf` if an improving direction has no blocking constraint (unbounded problem).
+
+### Sample output
+- `c = (3, 9)`, with 4 constraints
+- Phase I finds `x0 = (0, 1.7778)`
+- Moves to vertex `(0.8889, 2.2222)` with objective `22.67`
+- The next iteration finds an unbounded improving direction
+- **Result: problem is unbounded (objective = ∞)**
+
+---
+
+## LO_3: Simplex, General Case
+
+**Use case:** The general LP. No initial point is provided, only the cost vector and the constraints.
+
+### Input format (`testcase_7.csv`)
+CSV with no header.
+
+| Row | Meaning |
+|-----|---------|
+| 1 | Cost vector `c` (last column is a placeholder) |
+| 2 onwards | Constraint rows: coefficients of `A`, followed by the entry of `b` in the last column |
+
+### How it works
+The code is the same as LO_2 (`simplexp1`, `simplexp2`, `simplex`). The only difference is the input reader, which has no initial-point row:
+
+```python
+c = data[0, :-1]
+A = data[1:, :-1]
+b = data[1:, -1]
+xopt, val = simplex(A, b, c, x0=None)
+```
+
+### Sample output
+- `c = (5, 2)`, constraints: `-y ≤ 1`, `-x ≤ 1`, `-x - y ≤ 1`
+- Phase I finds `x0 = (0, 0)`
+- The first iteration finds an unbounded improving direction
+- **Result: problem is unbounded (objective = ∞)**
+
+---
+
+## Notes
+- All three assume the form **maximize `cᵀx` subject to `Ax ≤ b`**.
+- Phase I in LO_2 and LO_3 is a heuristic (least squares plus corrective steps) rather than a full two-phase simplex. It assumes a non-negative feasible point and may report "infeasible" on some feasible problems.
+- `simplexp1` modifies `A` and `b` in place when flipping negative-`b` constraints.
+- The `Unbounded` case returns the last point visited together with `inf`, so the printed "Optimal solution" is not a true optimum in that case.
+- CSV test files must be placed next to the notebooks (or uploaded in Colab).
+
+## Requirements
+- Python 3
+- `numpy`, `pandas`
+---
+
+## LO_4 and LO-5 : classic network optimization algorithms using the primal-dual approach
+
+## LO_4: Hungarian Algorithm 
 
 **Problem:** Given a bipartite graph with left nodes `L` and right nodes `R`, where each edge has a cost, find a one-to-one matching with minimum total cost.
 
