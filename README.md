@@ -1,6 +1,6 @@
 # Linear Optimization
 
-# Simplex Algorithm: LO_1, LO_2 & LO_3
+## Simplex Algorithm: LO_1, LO_2 & LO_3
 
 These three notebooks implement the **simplex method in its geometric (vertex-walking) form** for the linear program:
 
