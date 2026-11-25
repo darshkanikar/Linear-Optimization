@@ -128,7 +128,7 @@ xopt, val = simplex(A, b, c, x0=None)
 - `numpy`, `pandas`
 ---
 
-## LO_4 and LO-5 : classic network optimization algorithms using the primal-dual approach
+## LO_4 and LO_5 : classic network optimization algorithms using the primal-dual approach
 
 ## LO_4: Hungarian Algorithm 
 
