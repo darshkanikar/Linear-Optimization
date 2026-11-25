@@ -1,4 +1,4 @@
-# Linear Optimization: LO_4 & LO_5
+# Linear Optimization
 
 
 ---
